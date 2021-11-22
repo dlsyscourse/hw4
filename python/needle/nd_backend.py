@@ -192,7 +192,7 @@ def transpose(inputs, attrs):
     Parameters:
     axes - tuple of ints or None
 
-    If axes is a tuple of ints, a sum is performed on all of the axes specified in the tuple instead of a single axis.
+    If axes is a tuple of ints, permute those two axes.
     If axes is None, permutes the last two axes.
     """
     ### BEGIN YOUR SOLUTION
