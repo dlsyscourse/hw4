@@ -348,6 +348,16 @@ class LogSumExp(TensorOp):
     def gradient(self, out_grad, node):
         ### BEGIN YOUR SOLUTION
         raise NotImplementedError()
+        ### END YOUR SOLUTION
+
+
+def logsumexp(a, axes=None):
+    return LogSumExp(axes=axes)(a)
+
+
+class Tanh(TensorOp):
+    def compute(self, a):
+        ### BEGIN YOUR SOLUTION
         raise NotImplementedError()
         ### END YOUR SOLUTION
 
