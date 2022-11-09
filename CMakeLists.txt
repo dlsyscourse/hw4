@@ -58,7 +58,16 @@ if(CUDA_FOUND)
 
   include_directories(SYSTEM ${CUDA_INCLUDE_DIRS})
   list(APPEND LINKER_LIBS ${CUDA_CUDART_LIBRARY})
-  CUDA_SELECT_NVCC_ARCH_FLAGS(ARCH_FLAGS Auto)
+
+  # invoke nvidia smi to detect if we really have a GPU
+  execute_process(COMMAND "nvidia-smi" ERROR_QUIET  RESULT_VARIABLE NV_RET)
+  if(NV_RET EQUAL "0")
+    CUDA_SELECT_NVCC_ARCH_FLAGS(ARCH_FLAGS Auto)
+  else()
+    # set to 3.7 the flag of K80
+    CUDA_SELECT_NVCC_ARCH_FLAGS(ARCH_FLAGS 3.7)
+  endif()
+
   # set arch flags properly
   CUDA_ADD_LIBRARY(ndarray_backend_cuda MODULE src/ndarray_backend_cuda.cu OPTIONS ${ARCH_FLAGS})
 
@@ -75,3 +84,4 @@ if(CUDA_FOUND)
 )
 
 endif()
+

@@ -1,10 +1,9 @@
 """The module.
 """
-from typing import List, Callable, Any
+from typing import List
 from needle.autograd import Tensor
 from needle import ops
 import needle.init as init
-import needle.autograd as autograd
 import numpy as np
 
 
@@ -32,9 +31,22 @@ def _unpack_params(value: object) -> List[Tensor]:
 
 
 def _child_modules(value: object) -> List["Module"]:
-    ### BEGIN YOUR SOLUTION
-    raise NotImplementedError()
-    ### END YOUR SOLUTION
+    if isinstance(value, Module):
+        modules = [value]
+        modules.extend(_child_modules(value.__dict__))
+        return modules
+    if isinstance(value, dict):
+        modules = []
+        for k, v in value.items():
+            modules += _child_modules(v)
+        return modules
+    elif isinstance(value, (list, tuple)):
+        modules = []
+        for v in value:
+            modules += _child_modules(v)
+        return modules
+    else:
+        return []
 
 
 class Module:
@@ -62,20 +74,9 @@ class Module:
         return self.forward(*args, **kwargs)
 
 
-class Flatten(Module):
-    """
-    Flattens the dimensions of a Tensor after the first into one dimension.
-
-    Input shape: (bs, s_1, ..., s_n)
-    Output shape: (bs, s_1*...*s_n)
-    """
-    def __init__(self):
-        super().__init__()
-
-    def forward(self, x: Tensor) -> Tensor:
-        ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
-        ### END YOUR SOLUTION
+class Identity(Module):
+    def forward(self, x):
+        return x
 
 
 class Linear(Module):
@@ -85,20 +86,25 @@ class Linear(Module):
         super().__init__()
         self.in_features = in_features
         self.out_features = out_features
+
         ### BEGIN YOUR SOLUTION
         raise NotImplementedError()
         ### END YOUR SOLUTION
 
-    def forward(self, x: Tensor) -> Tensor:
+    def forward(self, X: Tensor) -> Tensor:
+        ### BEGIN YOUR SOLUTION
+        raise NotImplementedError()
+        ### END YOUR SOLUTION
+
+
+class Flatten(Module):
+    def forward(self, X):
         ### BEGIN YOUR SOLUTION
         raise NotImplementedError()
         ### END YOUR SOLUTION
 
 
 class ReLU(Module):
-    def __init__(self):
-        super().__init__()
-
     def forward(self, x: Tensor) -> Tensor:
         ### BEGIN YOUR SOLUTION
         raise NotImplementedError()
@@ -106,9 +112,6 @@ class ReLU(Module):
 
 
 class Tanh(Module):
-    def __init__(self):
-        super().__init__()
-
     def forward(self, x: Tensor) -> Tensor:
         ### BEGIN YOUR SOLUTION
         raise NotImplementedError()
@@ -137,16 +140,13 @@ class Sequential(Module):
 
 
 class SoftmaxLoss(Module):
-    def __init__(self):
-        super().__init__()
-
-    def forward(self, x: Tensor, y: Tensor):
+    def forward(self, logits: Tensor, y: Tensor):
         ### BEGIN YOUR SOLUTION
         raise NotImplementedError()
         ### END YOUR SOLUTION
 
 
-class BatchNorm(Module):
+class BatchNorm1d(Module):
     def __init__(self, dim, eps=1e-5, momentum=0.1, device=None, dtype="float32"):
         super().__init__()
         self.dim = dim
@@ -162,10 +162,22 @@ class BatchNorm(Module):
         ### END YOUR SOLUTION
 
 
-class LayerNorm(Module):
-    def __init__(self, dims, eps=1e-5, device=None, dtype="float32"):
+class BatchNorm2d(BatchNorm1d):
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+
+    def forward(self, x: Tensor):
+        # nchw -> nhcw -> nhwc
+        s = x.shape
+        _x = x.transpose((1, 2)).transpose((2, 3)).reshape((s[0] * s[2] * s[3], s[1]))
+        y = super().forward(_x).reshape((s[0], s[2], s[3], s[1]))
+        return y.transpose((2,3)).transpose((1,2))
+
+
+class LayerNorm1d(Module):
+    def __init__(self, dim, eps=1e-5, device=None, dtype="float32"):
         super().__init__()
-        self.dims = dims if isinstance(dims, tuple) else (dims,)
+        self.dim = dim
         self.eps = eps
         ### BEGIN YOUR SOLUTION
         raise NotImplementedError()
@@ -178,9 +190,9 @@ class LayerNorm(Module):
 
 
 class Dropout(Module):
-    def __init__(self, drop_prob):
+    def __init__(self, p=0.5):
         super().__init__()
-        self.p = drop_prob
+        self.p = p
 
     def forward(self, x: Tensor) -> Tensor:
         ### BEGIN YOUR SOLUTION
@@ -198,26 +210,10 @@ class Residual(Module):
         raise NotImplementedError()
         ### END YOUR SOLUTION
 
-
-class Identity(Module):
-    def __init__(self, *args, **kwargs):
-        super().__init__()
-
-    def forward(self, x):
-        return x
-
-class Flatten(Module):
-    def __init__(self, *args, **kwargs):
-        super().__init__()
-
-    def forward(self, x):
-        return x.reshape((x.shape[0], np.prod(x.shape[1:])))
-
 class Conv(Module):
     """
     Multi-channel 2D convolutional layer
     IMPORTANT: Accepts inputs in NCHW format, outputs also in NCHW format
-
     Only supports padding=same
     No grouped convolution or dilation
     Only supports square kernels
@@ -232,6 +228,7 @@ class Conv(Module):
         self.out_channels = out_channels
         self.kernel_size = kernel_size
         self.stride = stride
+
         ### BEGIN YOUR SOLUTION
         raise NotImplementedError()
         ### END YOUR SOLUTION

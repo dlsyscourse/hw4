@@ -9,6 +9,7 @@ import mugrade
 
 import needle as ndl
 import needle.nn as nn
+
 from simple_training import *
 from models import LanguageModel
 
@@ -256,15 +257,15 @@ TEST_SEQ_MODEL = ['rnn', 'lstm']
 def mugrade_submit(x):
     if isinstance(x, np.ndarray):
         x = x.flatten()[:64]
-        # print(x)
+        #print(x)
         mugrade.submit(x)
     else:
-        # print(x)
+        #print(x)
         mugrade.submit(x)
 
 
 def submit_rnn():
-    # devices = [ndl.cpu(), ndl.cuda()] if ndl.cuda().enabled() else [ndl.cpu()]
+    #devices = [ndl.cpu(), ndl.cuda()] if ndl.cuda().enabled() else [ndl.cpu()]
     devices = [ndl.cpu(), ndl.cuda()]
 
     if not ndl.cuda().enabled():
@@ -294,7 +295,7 @@ def submit_rnn():
 
 
 def submit_lstm():
-    # devices = [ndl.cpu(), ndl.cuda()] if ndl.cuda().enabled() else [ndl.cpu()]
+    #devices = [ndl.cpu(), ndl.cuda()] if ndl.cuda().enabled() else [ndl.cpu()]
     devices = [ndl.cpu(), ndl.cuda()]
     if not ndl.cuda().enabled():
         print('You need a GPU to run some of these tests.')
@@ -326,7 +327,7 @@ def submit_lstm():
 
 
 def submit_language_model():
-    # devices = [ndl.cpu(), ndl.cuda()] if ndl.cuda().enabled() else [ndl.cpu()]
+    #devices = [ndl.cpu(), ndl.cuda()] if ndl.cuda().enabled() else [ndl.cpu()]
     devices = [ndl.cpu(), ndl.cuda()]
     if not ndl.cuda().enabled():
         print('You need a GPU to run some of these tests.')

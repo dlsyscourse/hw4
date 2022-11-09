@@ -12,6 +12,7 @@ def prod(x):
 
 class BackendDevice:
     """A backend device, wrapps the implementation module."""
+
     def __init__(self, name, mod):
         self.name = name
         self.mod = mod
@@ -28,19 +29,45 @@ class BackendDevice:
     def enabled(self):
         return self.mod is not None
 
+    def randn(self, *shape, dtype="float32"):
+        # note: numpy doesn't support types within standard random routines, and
+        # .astype("float32") does work if we're generating a singleton
+        return NDArray(np.random.randn(*shape).astype(dtype), device=self)
+
+    def rand(self, *shape, dtype="float32"):
+        # note: numpy doesn't support types within standard random routines, and
+        # .astype("float32") does work if we're generating a singleton
+        return NDArray(np.random.rand(*shape).astype(dtype), device=self)
+
+    def one_hot(self, n, i, dtype="float32"):
+        return NDArray(np.eye(n, dtype=dtype)[i], device=self)
+
+    def empty(self, shape, dtype="float32"):
+        dtype = "float32" if dtype is None else dtype
+        assert dtype == "float32"
+        return NDArray.make(shape, device=self)
+
+    def full(self, shape, fill_value, dtype="float32"):
+        dtype = "float32" if dtype is None else dtype
+        assert dtype == "float32"
+        arr = self.empty(shape, dtype)
+        arr.fill(fill_value)
+        return arr
+
 
 def cuda():
     """Return cuda device"""
     try:
         from . import ndarray_backend_cuda
+
         return BackendDevice("cuda", ndarray_backend_cuda)
     except ImportError:
         return BackendDevice("cuda", None)
 
 
-def numpy_device():
+def cpu_numpy():
     """Return numpy device"""
-    return BackendDevice("numpy_device", ndarray_backend_numpy)
+    return BackendDevice("cpu_numpy", ndarray_backend_numpy)
 
 
 def cpu():
@@ -49,7 +76,12 @@ def cpu():
 
 
 def default_device():
-    return numpy_device()
+    return cpu_numpy()
+
+
+def all_devices():
+    """return a list of all available devices"""
+    return [cpu(), cuda(), cpu_numpy()]
 
 
 class NDArray:
@@ -101,9 +133,9 @@ class NDArray:
 
     @staticmethod
     def make(shape, strides=None, device=None, handle=None, offset=0):
-        """ Create a new NDArray with the given properties.  This will allocation the
+        """Create a new NDArray with the given properties.  This will allocation the
         memory if handle=None, otherwise it will use the handle of an existing
-        array. """
+        array."""
         array = NDArray.__new__(NDArray)
         array._shape = tuple(shape)
         array._strides = NDArray.compact_strides(shape) if strides is None else strides
@@ -119,10 +151,6 @@ class NDArray:
     @property
     def shape(self):
         return self._shape
-
-    @property
-    def size(self):
-        return np.prod(self._shape)
 
     @property
     def strides(self):
@@ -142,19 +170,15 @@ class NDArray:
         """ Return number of dimensions. """
         return len(self._shape)
 
+    @property
+    def size(self):
+        return prod(self._shape)
+
     def __repr__(self):
-        return (
-            "NDArray("
-            + self.numpy().__str__()
-            + f", device={self.device})"
-        )
+        return "NDArray(" + self.numpy().__str__() + f", device={self.device})"
 
     def __str__(self):
         return self.numpy().__str__()
-
-    def astype(self, dtype):
-        # only support float32 for now
-        return self
 
     ### Basic array manipulation
     def fill(self, value):
@@ -175,10 +199,12 @@ class NDArray:
         )
 
     def is_compact(self):
-        """ Return true if array is compact in memory and internal size equals product
-        of the shape dimensions """
-        return (self._strides == self.compact_strides(self._shape) and
-                prod(self.shape) == self._handle.size)
+        """Return true if array is compact in memory and internal size equals product
+        of the shape dimensions"""
+        return (
+            self._strides == self.compact_strides(self._shape)
+            and prod(self.shape) == self._handle.size
+        )
 
     def compact(self):
         """ Convert a matrix to be compact """
@@ -267,7 +293,6 @@ class NDArray:
             NDArray: the new NDArray object with the new broadcast shape; should
             point to the same memory as the original array.
         """
-
         ### BEGIN YOUR SOLUTION
         raise NotImplementedError()
         ### END YOUR SOLUTION
@@ -504,28 +529,39 @@ class NDArray:
             return out
 
     ### Reductions, i.e., sum/max over all element or over given axis
-    def reduce_view_out(self, axis):
+    def reduce_view_out(self, axis, keepdims=False):
         """ Return a view to the array set up for reduction functions and output array. """
+        if isinstance(axis, tuple) and not axis:
+            raise ValueError("Empty axis in reduce")
+
         if axis is None:
-            view = self.reshape((1,) * (self.ndim - 1) + (prod(self.shape),))
-            out = NDArray.make((1,) * self.ndim, device=self.device)
+            view = self.compact().reshape((1,) * (self.ndim - 1) + (prod(self.shape),))
+            #out = NDArray.make((1,) * self.ndim, device=self.device)
+            out = NDArray.make((1,), device=self.device)
+
         else:
+            if isinstance(axis, (tuple, list)):
+                assert len(axis) == 1, "Only support reduction over a single axis"
+                axis = axis[0]
+
             view = self.permute(
                 tuple([a for a in range(self.ndim) if a != axis]) + (axis,)
             )
             out = NDArray.make(
-                tuple([1 if i == axis else s for i, s in enumerate(self.shape)]),
+                tuple([1 if i == axis else s for i, s in enumerate(self.shape)])
+                if keepdims else
+                tuple([s for i, s in enumerate(self.shape) if i != axis]),
                 device=self.device,
             )
         return view, out
 
-    def sum(self, axis=None):
-        view, out = self.reduce_view_out(axis)
+    def sum(self, axis=None, keepdims=False):
+        view, out = self.reduce_view_out(axis, keepdims=keepdims)
         self.device.reduce_sum(view.compact()._handle, out._handle, view.shape[-1])
         return out
 
-    def max(self, axis=None):
-        view, out = self.reduce_view_out(axis)
+    def max(self, axis=None, keepdims=False):
+        view, out = self.reduce_view_out(axis, keepdims=keepdims)
         self.device.reduce_max(view.compact()._handle, out._handle, view.shape[-1])
         return out
 
@@ -533,7 +569,6 @@ class NDArray:
     def flip(self, axes):
         """
         Flip this ndarray along the specified axes.
-
         Note: compact() before returning.
         """
         ### BEGIN YOUR SOLUTION
@@ -561,6 +596,41 @@ def array(a, dtype="float32", device=None):
 
 
 def empty(shape, dtype="float32", device=None):
-    dtype = "float32" if dtype is None else dtype
-    assert dtype == "float32"
-    return NDArray.make(shape, device=device)
+    device = device if device is not None else default_device()
+    return device.empty(shape, dtype)
+
+
+def full(shape, fill_value, dtype="float32", device=None):
+    device = device if device is not None else default_device()
+    return device.full(shape, fill_value, dtype)
+
+
+def broadcast_to(array, new_shape):
+    return array.broadcast_to(new_shape)
+
+
+def reshape(array, new_shape):
+    return array.reshape(new_shape)
+
+
+def maximum(a, b):
+    return a.maximum(b)
+
+
+def log(a):
+    return a.log()
+
+
+def exp(a):
+    return a.exp()
+
+
+def tanh(a):
+    return a.tanh()
+
+def flip(a, axes):
+    return a.flip(axes)
+
+
+def summation(a, axis=None, keepdims=False):
+    return a.sum(axis=axis, keepdims=keepdims)

@@ -26,7 +26,6 @@ class LanguageModel(nn.Module):
         """
         Consists of an embedding layer, a sequence model (either RNN or LSTM), and a
         linear layer.
-
         Parameters:
         output_size: Size of dictionary
         embedding_size: Size of embeddings
@@ -43,12 +42,10 @@ class LanguageModel(nn.Module):
         """
         Given sequence (and the previous hidden state if given), returns probabilities of next word
         (along with the last hidden state from the sequence model).
-
         Inputs:
         x of shape (seq_len, bs)
         h of shape (num_layers, bs, hidden_size) if using RNN,
             else h is tuple of (h0, c0), each of shape (num_layers, bs, hidden_size)
-
         Returns (out, h)
         out of shape (seq_len*bs, output_size)
         h of shape (num_layers, bs, hidden_size) if using RNN,

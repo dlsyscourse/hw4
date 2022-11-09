@@ -2,9 +2,11 @@ import sys
 sys.path.append('../python')
 import needle as ndl
 import needle.nn as nn
+from needle import backend_ndarray as nd
 from models import *
 import time
 
+device = ndl.cpu()
 
 ### CIFAR-10 training ###
 
@@ -153,25 +155,21 @@ def evaluate_ptb(model, data, seq_len=40, loss_fn=nn.SoftmaxLoss,
 if __name__ == "__main__":
     ### For testing purposes
     device = ndl.cpu()
-    # dataset = ndl.data.CIFAR10Dataset("../data/cifar-10-batches-py", train=True)
-    # dataloader = ndl.data.DataLoader(\
-    #          dataset=dataset,
-    #          batch_size=128,
-    #          shuffle=True,
-    #          collate_fn=ndl.data.collate_ndarray,
-    #          drop_last=False,
-    #          device=device,
-    #          dtype="float32"
-    #          )
+    #dataset = ndl.data.CIFAR10Dataset("./data/cifar-10-batches-py", train=True)
+    #dataloader = ndl.data.DataLoader(\
+    #         dataset=dataset,
+    #         batch_size=128,
+    #         shuffle=True
+    #         )
     #
-    # model = ResNet9(device=device, dtype="float32")
-    # train_cifar10(model, dataloader, n_epochs=10, optimizer=ndl.optim.Adam,
-    #       lr=0.001, weight_decay=0.001)
+    #model = ResNet9(device=device, dtype="float32")
+    #train_cifar10(model, dataloader, n_epochs=10, optimizer=ndl.optim.Adam,
+    #      lr=0.001, weight_decay=0.001)
 
-    corpus = ndl.data.Corpus("../data/ptb")
+    corpus = ndl.data.Corpus("./data/ptb")
     seq_len = 40
     batch_size = 16
     hidden_size = 100
-    train_data = ndl.data.batchify(corpus.train, batch_size, device=ndl.cpu(), dtype="float32")
-    model = LanguageModel(1, len(corpus.dictionary), hidden_size, num_layers=2, device=ndl.cpu())
-    train_ptb(model, train_data, seq_len, n_epochs=10)
+    train_data = ndl.data.batchify(corpus.train, batch_size, device=device, dtype="float32")
+    model = LanguageModel(1, len(corpus.dictionary), hidden_size, num_layers=2, device=device)
+    train_ptb(model, train_data, seq_len, n_epochs=10, device=device)

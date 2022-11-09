@@ -37,14 +37,13 @@ BATCH_SIZES = [1, 15]
 @pytest.mark.parametrize("device", _DEVICES, ids=["cpu", "cuda"])
 def test_cifar10_loader(batch_size, train, device):
     cifar10_train_dataset = ndl.data.CIFAR10Dataset("data/cifar-10-batches-py", train=True)
-    train_loader = ndl.data.DataLoader(cifar10_train_dataset, batch_size, device=device, dtype="float32")
+    train_loader = ndl.data.DataLoader(cifar10_train_dataset, batch_size)
     for (X, y) in train_loader:
         break
     assert isinstance(X.cached_data, nd.NDArray)
     assert isinstance(X, ndl.Tensor)
     assert isinstance(y, ndl.Tensor)
     assert X.dtype == 'float32'
-    assert X.cached_device == device
 
 
 BPTT = [3, 32]
@@ -64,7 +63,7 @@ def test_ptb_dataset(batch_size, bptt, train, device):
     assert y.shape == (bptt * batch_size,)
     assert isinstance(X, ndl.Tensor)
     assert X.dtype == 'float32'
-    assert X.cached_device == device
+    assert X.device == device
     assert isinstance(X.cached_data, nd.NDArray)
     ntokens = len(corpus.dictionary)
     assert ntokens == 10000
@@ -78,10 +77,10 @@ TEST_BPTT = [6, 10]
 def mugrade_submit(x):
     if isinstance(x, np.ndarray):
         x = x.flatten()[:128]
-        # print(x)
+        #print(x)
         mugrade.submit(x)
     else:
-        # print(x)
+        #print(x)
         mugrade.submit(x)
 
 
@@ -93,12 +92,11 @@ def submit_cifar10():
         dataset = ndl.data.CIFAR10Dataset("data/cifar-10-batches-py", train=train)
         mugrade_submit(len(dataset))
         for (device, batch_size) in itertools.product(devices, TEST_BATCH_SIZES):
-            loader = ndl.data.DataLoader(dataset, batch_size, device=device, dtype="float32")
+            loader = ndl.data.DataLoader(dataset, batch_size)
             for (X, y) in loader:
                 break
-            mugrade_submit(len(loader))
-            mugrade_submit(X[0, :, :, :].numpy())
-            mugrade_submit(y[0].numpy())
+            mugrade_submit(X.numpy()[0, :, :, :])
+            mugrade_submit(y.numpy()[0])
 
 
 def submit_ptb():
@@ -115,8 +113,8 @@ def submit_ptb():
                 data = ndl.data.batchify(corpus.test, batch_size, device=device, dtype="float32")
             X, y = ndl.data.get_batch(data, np.random.randint(len(data)), bptt)
             mugrade_submit(np.array(len(data)))
-            mugrade_submit(X[0, :].numpy())
-            mugrade_submit(y[0].numpy())
+            mugrade_submit(X.numpy()[0, :])
+            mugrade_submit(y.numpy()[0])
 
 
 if __name__ == "__main__":

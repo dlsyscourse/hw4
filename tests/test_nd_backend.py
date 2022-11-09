@@ -25,13 +25,13 @@ def backward_check(f, *args, **kwargs):
             f2 = (f(*args, **kwargs).numpy() * c).sum()
             args[i].realize_cached_data().flat[j] += eps
             numerical_grad[i].flat[j] = (f1 - f2) / (2 * eps)
-    backward_grad = f.gradient(ndl.Tensor(c, device=args[i].device), out)
+    backward_grad = out.op.gradient_as_tuple(ndl.Tensor(c, device=args[0].device), out)
     error = sum(
         np.linalg.norm(backward_grad[i].numpy() - numerical_grad[i])
         for i in range(len(args))
     )
     assert error < 4.2e-1
-    return np.array([g.numpy() for g in backward_grad])
+    return [g.numpy() for g in backward_grad]
 
 
 _DEVICES = [ndl.cpu(), pytest.param(ndl.cuda(),
@@ -143,6 +143,7 @@ def test_tanh_backward(shape, device):
 
 
 STACK_PARAMETERS = [((5, 5), 0, 1),
+    ((5, 5), 0, 2),
     ((1,5,7), 2, 5)]
 @pytest.mark.parametrize("shape, axis, l", STACK_PARAMETERS)
 @pytest.mark.parametrize("device", _DEVICES, ids=["cpu", "cuda"])
@@ -171,7 +172,8 @@ def test_stack_backward(shape, axis, l, device):
 
 SUMMATION_PARAMETERS = [((1, 1, 1), None),
     ((5, 3), 0),
-    ((8, 3, 2), (1, 2)),
+    ((8, 3, 2), 1),
+    ((8, 3, 2), 2)
 ]
 @pytest.mark.parametrize("shape, axes", SUMMATION_PARAMETERS)
 @pytest.mark.parametrize("device", _DEVICES, ids=["cpu", "cuda"])
@@ -224,50 +226,18 @@ def test_transpose(shape, axes, device):
     np.testing.assert_allclose(np.swapaxes(_A, np_axes[0], np_axes[1]), ndl.transpose(A, axes=axes).numpy(), atol=1e-5, rtol=1e-5)
 
 
-@pytest.mark.parametrize("shape", GENERAL_SHAPES)
+@pytest.mark.parametrize("shape, axes", SUMMATION_PARAMETERS)
 @pytest.mark.parametrize("device", _DEVICES, ids=["cpu", "cuda"])
-def test_logsoftmax(shape, device):
+def test_logsumexp(shape, axes, device):
     _A = np.random.randn(*shape).astype(np.float32)
     A = ndl.Tensor(nd.array(_A), device=device)
     A_t = torch.Tensor(_A)
-    np.testing.assert_allclose(torch.log_softmax(A_t, axis=-1).numpy(), ndl.logsoftmax(A).numpy(), atol=1e-5, rtol=1e-5)
+    if axes is None:
+        t_axes = tuple(list(range(len(shape))))
+    else:
+        t_axes = axes
+    np.testing.assert_allclose(torch.logsumexp(A_t, dim=t_axes).numpy(), ndl.logsumexp(A, axes=axes).numpy(), atol=1e-5, rtol=1e-5)
 
-
-GETSETITEM_PARAMS = [((1, 1), (0, 0)),
-    ((4, 10), (np.s_[1:3], np.s_[5:10])),
-    ((4, 5, 10), (1, np.s_[1:], np.s_[:5])),
-    ((4, 1, 1), (1, np.s_[:], np.s_[:])),
-    ((1, 4, 1), (np.s_[:], 1, np.s_[:])),
-]
-@pytest.mark.parametrize("shape,idxs", GETSETITEM_PARAMS)
-@pytest.mark.parametrize("device", _DEVICES, ids=["cpu", "cuda"])
-def test_getitem(shape, idxs, device):
-    _A = np.random.randn(*shape).astype(np.float32)
-    A = ndl.Tensor(nd.array(_A), device=device)
-    np.testing.assert_allclose(_A[idxs], A[idxs].numpy(), atol=1e-5, rtol=1e-5)
-
-
-@pytest.mark.parametrize("shape,idxs", GETSETITEM_PARAMS)
-@pytest.mark.parametrize("device", _DEVICES, ids=["cpu", "cuda"])
-def test_getitem_backward(shape, idxs, device):
-    _A = np.random.randn(*shape).astype(np.float32)
-    A = ndl.Tensor(nd.array(_A), device=device)
-    backward_check(ndl.get_item, A, idxs=idxs)
-
-
-@pytest.mark.parametrize("shape,idxs", GETSETITEM_PARAMS)
-@pytest.mark.parametrize("device", _DEVICES, ids=["cpu", "cuda"])
-def test_setitem(shape, idxs, device):
-    _A = np.random.randn(*shape).astype(np.float32)
-    shape = _A[idxs].shape
-    if len(shape) == 0:
-        shape = (1,)
-    _B = np.random.randn(*shape).astype(np.float32)
-    A = ndl.Tensor(nd.array(_A), device=device)
-    B = ndl.Tensor(nd.array(_B), device=device)
-    A[idxs] = B
-    _A[idxs] = _B
-    np.testing.assert_allclose(_A, A.numpy(), atol=1e-5, rtol=1e-5)
 
 
 ### MUGRADE ###
@@ -275,7 +245,8 @@ def test_setitem(shape, idxs, device):
 TEST_GENERAL_SHAPES = [(3, 1, 2)]
 TEST_MATMUL_DIMS = [(3, 4, 2), (8, 16, 16)]
 TEST_STACK_PARAMETERS = [((2, 3), 0, 3)]
-TEST_SUMMATION_PARAMETERS = [((3, 2), 0), ((2, 1, 2, 3), (2, 3))]
+TEST_SUMMATION_PARAMETERS = [((3, 2), 0), ((2, 1, 2, 3), 3)]
+TEST_LOGSUMEXP_PARAMETERS = [((3, 2), 0), ((2, 1, 2, 3), 3)]
 TEST_BROADCAST_SHAPES = [((2, 1), (2, 4)), ((2, 1, 5), (2, 3, 5))]
 TEST_RESHAPE_SHAPES = [((3, 1, 2), (3, 2, 1))]
 TEST_TRANSPOSE_SHAPES = [(3, 5, 1)]
@@ -286,15 +257,15 @@ TEST_GETSETITEM_PARAMS = [((3, 2), (2, 1)), ((3, 3, 4), (2, np.s_[2:], np.s_[:3]
 def mugrade_submit(x):
     if isinstance(x, np.ndarray):
         x = x.flatten()[:64]
-        # print(x)
+        #print(x)
         mugrade.submit(x)
     else:
-        # print(x)
+        #print(x)
         mugrade.submit(x)
 
 
 def submit_new_nd_backend():
-    # devices = [ndl.cpu(), ndl.cuda()] if ndl.cuda().enabled() else [ndl.cpu()]
+    #devices = [ndl.cpu(), ndl.cuda()] if ndl.cuda().enabled() else [ndl.cpu()]
     devices = [ndl.cpu(), ndl.cuda()]
 
     if not ndl.cuda().enabled():
@@ -384,32 +355,13 @@ def submit_new_nd_backend():
         A = ndl.Tensor(nd.array(_A), device=device)
         mugrade_submit(ndl.transpose(A, axes=axes).numpy())
 
-    # logsoftmax
-    for (device, shape) in itertools.product(devices, TEST_GENERAL_SHAPES):
+    # logsumexp
+    for (device, (shape, axes)) in itertools.product(devices, TEST_LOGSUMEXP_PARAMETERS):
         _A = np.random.randn(*shape).astype(np.float32)
         A = ndl.Tensor(nd.array(_A), device=device)
-        mugrade_submit(ndl.logsoftmax(A).numpy())
-
-    # getitem
-    for (device, (shape, idxs)) in itertools.product(devices, TEST_GETSETITEM_PARAMS):
-        _A = np.random.randn(*shape).astype(np.float32)
-        A = ndl.Tensor(nd.array(_A), device=device)
-        out = A[idxs]
-        mugrade_submit(A[idxs].numpy())
-        mugrade_submit(backward_check(ndl.get_item, A, idxs=idxs))
-
-    # setitem
-    for (device, (shape, idxs)) in itertools.product(devices, TEST_GETSETITEM_PARAMS):
-        _A = np.random.randn(*shape).astype(np.float32)
-        shape = _A[idxs].shape
-        if len(shape) == 0:
-            shape = (1,)
-        _B = np.random.randn(*shape).astype(np.float32)
-        A = ndl.Tensor(nd.array(_A), device=device)
-        B = ndl.Tensor(nd.array(_B), device=device)
-        A[idxs] = B
-        mugrade_submit(A.numpy())
+        mugrade_submit(ndl.logsumexp(A, axes).numpy())
+        mugrade_submit(backward_check(ndl.logsumexp, A, axes=axes))
 
 
 if __name__ == "__main__":
-    submit_nd_backend()
+    submit_new_nd_backend()
