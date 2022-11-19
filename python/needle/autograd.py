@@ -359,7 +359,6 @@ class Tensor(Value):
 
     __radd__ = __add__
     __rmul__ = __mul__
-    __rsub__ = __sub__
     __rmatmul__ = __matmul__
 
 
