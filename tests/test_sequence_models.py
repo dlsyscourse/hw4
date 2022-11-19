@@ -223,6 +223,7 @@ def test_language_model_implementation(seq_length, num_layers, batch_size, embed
 
 @pytest.mark.parametrize("device", _DEVICES, ids=["cpu", "cuda"])
 def test_language_model_training(device):
+    np.random.seed(0)
     corpus = ndl.data.Corpus("data/ptb", max_lines=20)
     seq_len = 10
     num_examples = 100
@@ -236,11 +237,12 @@ def test_language_model_training(device):
     train_acc, train_loss = train_ptb(model, train_data, seq_len=seq_len, n_epochs=n_epochs, device=device)
     test_acc, test_loss = evaluate_ptb(model, train_data, seq_len=seq_len, device=device)
     if str(device) == "cpu()":
-        np.testing.assert_allclose(5.65995, train_loss, atol=1e-5, rtol=1e-5)
-        np.testing.assert_allclose(5.328376, test_loss, atol=1e-5, rtol=1e-5)
+        np.testing.assert_allclose(5.711512, train_loss, atol=1e-5, rtol=1e-5)
+        np.testing.assert_allclose(5.388685, test_loss, atol=1e-5, rtol=1e-5)
     elif str(device) == "cuda()":
-        np.testing.assert_allclose(5.65995, train_loss, atol=1e-5, rtol=1e-5)
-        np.testing.assert_allclose(5.328376, test_loss, atol=1e-5, rtol=1e-5)
+        np.testing.assert_allclose(5.711512, train_loss, atol=1e-5, rtol=1e-5)
+        np.testing.assert_allclose(5.388685, test_loss, atol=1e-5, rtol=1e-5)
+
 
 
 
