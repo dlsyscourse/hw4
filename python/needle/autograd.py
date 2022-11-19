@@ -325,7 +325,7 @@ class Tensor(Value):
             return needle.ops.AddScalar(-other)(self)
        
     def __rsub__(self, other):
-         if isinstance(other, Tensor):
+        if isinstance(other, Tensor):
             return needle.ops.EWiseAdd()(needle.ops.Negate()(self), other)
         else:
             return needle.ops.AddScalar(other)(-self)
