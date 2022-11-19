@@ -328,7 +328,7 @@ class Tensor(Value):
          if isinstance(other, Tensor):
             return needle.ops.EWiseAdd()(needle.ops.Negate()(self), other)
         else:
-            return needle.ops.AddScalar(-self)(other)
+            return needle.ops.AddScalar(other)(-self)
 
     def __truediv__(self, other):
         if isinstance(other, Tensor):
