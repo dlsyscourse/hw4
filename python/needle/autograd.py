@@ -323,6 +323,12 @@ class Tensor(Value):
             return needle.ops.EWiseAdd()(self, needle.ops.Negate()(other))
         else:
             return needle.ops.AddScalar(-other)(self)
+       
+    def __rsub__(self, other):
+         if isinstance(other, Tensor):
+            return needle.ops.EWiseAdd()(needle.ops.Negate()(self), other)
+        else:
+            return needle.ops.AddScalar(-self)(other)
 
     def __truediv__(self, other):
         if isinstance(other, Tensor):
