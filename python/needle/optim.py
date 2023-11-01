@@ -2,6 +2,7 @@
 import needle as ndl
 import numpy as np
 
+
 class Optimizer:
     def __init__(self, params):
         self.params = params
@@ -31,11 +32,9 @@ class SGD(Optimizer):
         """
         Clips gradient norm of parameters.
         """
-        total_norm = np.linalg.norm(np.array([np.linalg.norm(p.grad.detach().numpy()).reshape((1,)) for p in self.params]))
-        clip_coef = max_norm / (total_norm + 1e-6)
-        clip_coef_clamped = min((np.asscalar(clip_coef), 1.0))
-        for p in self.params:
-            p.grad = p.grad.detach() * clip_coef_clamped
+        ### BEGIN YOUR SOLUTION
+        raise NotImplementedError()
+        ### END YOUR SOLUTION
 
 
 class Adam(Optimizer):
