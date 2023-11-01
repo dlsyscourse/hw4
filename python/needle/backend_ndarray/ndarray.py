@@ -5,6 +5,7 @@ import numpy as np
 from . import ndarray_backend_numpy
 from . import ndarray_backend_cpu
 
+
 # math.prod not in Python 3.7
 def prod(x):
     return reduce(operator.mul, x, 1)
@@ -97,7 +98,7 @@ class NDArray:
     """
 
     def __init__(self, other, device=None):
-        """ Create by copying another NDArray, or from numpy """
+        """Create by copying another NDArray, or from numpy"""
         if isinstance(other, NDArray):
             # create a copy of existing NDArray
             if device is None:
@@ -123,7 +124,7 @@ class NDArray:
 
     @staticmethod
     def compact_strides(shape):
-        """ Utility function to compute compact strides """
+        """Utility function to compute compact strides"""
         stride = 1
         res = []
         for i in range(1, len(shape) + 1):
@@ -167,7 +168,7 @@ class NDArray:
 
     @property
     def ndim(self):
-        """ Return number of dimensions. """
+        """Return number of dimensions."""
         return len(self._shape)
 
     @property
@@ -182,18 +183,18 @@ class NDArray:
 
     ### Basic array manipulation
     def fill(self, value):
-        """ Fill (in place) with a constant value. """
+        """Fill (in place) with a constant value."""
         self._device.fill(self._handle, value)
 
     def to(self, device):
-        """ Convert between devices, using to/from numpy calls as the unifying bridge. """
+        """Convert between devices, using to/from numpy calls as the unifying bridge."""
         if device == self.device:
             return self
         else:
             return NDArray(self.numpy(), device=device)
 
     def numpy(self):
-        """ convert to a numpy array """
+        """convert to a numpy array"""
         return self.device.to_numpy(
             self._handle, self.shape, self.strides, self._offset
         )
@@ -207,7 +208,7 @@ class NDArray:
         )
 
     def compact(self):
-        """ Convert a matrix to be compact """
+        """Convert a matrix to be compact"""
         if self.is_compact():
             return self
         else:
@@ -218,7 +219,7 @@ class NDArray:
             return out
 
     def as_strided(self, shape, strides):
-        """ Restride the matrix without copying memory. """
+        """Restride the matrix without copying memory."""
         assert len(shape) == len(strides)
         return NDArray.make(
             shape, strides=strides, device=self.device, handle=self._handle
@@ -293,6 +294,7 @@ class NDArray:
             NDArray: the new NDArray object with the new broadcast shape; should
             point to the same memory as the original array.
         """
+
         ### BEGIN YOUR SOLUTION
         raise NotImplementedError()
         ### END YOUR SOLUTION
@@ -300,7 +302,7 @@ class NDArray:
     ### Get and set elements
 
     def process_slice(self, sl, dim):
-        """ Convert a slice to an explicit start/stop/step """
+        """Convert a slice to an explicit start/stop/step"""
         start, stop, step = sl.start, sl.stop, sl.step
         if start == None:
             start = 0
@@ -536,8 +538,8 @@ class NDArray:
 
         if axis is None:
             view = self.compact().reshape((1,) * (self.ndim - 1) + (prod(self.shape),))
-            out = NDArray.make((1,) * (self.ndim if keepdims else 1), device=self.device)
-
+            #out = NDArray.make((1,) * self.ndim, device=self.device)
+            out = NDArray.make((1,), device=self.device)
 
         else:
             if isinstance(axis, (tuple, list)):
@@ -565,7 +567,6 @@ class NDArray:
         self.device.reduce_max(view.compact()._handle, out._handle, view.shape[-1])
         return out
 
-
     def flip(self, axes):
         """
         Flip this ndarray along the specified axes.
@@ -574,7 +575,6 @@ class NDArray:
         ### BEGIN YOUR SOLUTION
         raise NotImplementedError()
         ### END YOUR SOLUTION
-
 
     def pad(self, axes):
         """
@@ -586,10 +586,8 @@ class NDArray:
         raise NotImplementedError()
         ### END YOUR SOLUTION
 
-
-
 def array(a, dtype="float32", device=None):
-    """ Convenience methods to match numpy a bit more closely."""
+    """Convenience methods to match numpy a bit more closely."""
     dtype = "float32" if dtype is None else dtype
     assert dtype == "float32"
     return NDArray(a, device=device)
@@ -628,9 +626,10 @@ def exp(a):
 def tanh(a):
     return a.tanh()
 
+
+def sum(a, axis=None, keepdims=False):
+    return a.sum(axis=axis, keepdims=keepdims)
+
+
 def flip(a, axes):
     return a.flip(axes)
-
-
-def summation(a, axis=None, keepdims=False):
-    return a.sum(axis=axis, keepdims=keepdims)

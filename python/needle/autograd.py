@@ -1,16 +1,23 @@
 """Core data structures."""
 import needle
+from .backend_numpy import Device, cpu, all_devices
 from typing import List, Optional, NamedTuple, Tuple, Union
 from collections import namedtuple
 import numpy
+
 from needle import init
 
 # needle version
 LAZY_MODE = False
 TENSOR_COUNTER = 0
 
-from .backend_selection import Device, array_api, NDArray, default_device
+# NOTE: we will import numpy as the array_api
+# as the backend for our computations, this line will change in later homeworks
 
+import numpy as array_api
+NDArray = numpy.ndarray
+
+from .backend_selection import array_api, NDArray, default_device
 
 class Op:
     """Operator definition."""
@@ -56,7 +63,7 @@ class Op:
         raise NotImplementedError()
 
     def gradient_as_tuple(self, out_grad: "Value", node: "Value") -> Tuple["Value"]:
-        """ Convenience method to always return a tuple from gradient call"""
+        """Convenience method to always return a tuple from gradient call"""
         output = self.gradient(out_grad, node)
         if isinstance(output, tuple):
             return output
@@ -67,7 +74,7 @@ class Op:
 
 
 class TensorOp(Op):
-    """ Op class specialized to output tensors, will be alterate subclasses for other structures """
+    """Op class specialized to output tensors, will be alternate subclasses for other structures"""
 
     def __call__(self, *args):
         return Tensor.make_from_op(self, args)
@@ -100,7 +107,6 @@ class Value:
         self.cached_data = self.op.compute(
             *[x.realize_cached_data() for x in self.inputs]
         )
-        self.cached_data
         return self.cached_data
 
     def is_leaf(self):
@@ -151,12 +157,6 @@ class Value:
             value.realize_cached_data()
         return value
 
-    def numpy(self):
-        data = self.realize_cached_data()
-        if array_api is numpy:
-            return data
-        return data.numpy() if not isinstance(data, tuple) else [x.numpy() for x in data]
-
 
 ### Not needed in HW1
 class TensorTuple(Value):
@@ -199,7 +199,7 @@ class Tensor(Value):
         array,
         *,
         device: Optional[Device] = None,
-        dtype="float32",
+        dtype=None,
         requires_grad=True,
         **kwargs
     ):
@@ -283,8 +283,9 @@ class Tensor(Value):
     @property
     def device(self):
         data = self.realize_cached_data()
+        # numpy array always sits on cpu
         if array_api is numpy:
-            return default_device()
+            return cpu()
         return data.device
 
     def backward(self, out_grad=None):
@@ -301,6 +302,12 @@ class Tensor(Value):
     def __str__(self):
         return self.realize_cached_data().__str__()
 
+    def numpy(self):
+        data = self.realize_cached_data()
+        if array_api is numpy:
+            return data
+        return data.numpy()
+
     def __add__(self, other):
         if isinstance(other, Tensor):
             return needle.ops.EWiseAdd()(self, other)
@@ -314,21 +321,16 @@ class Tensor(Value):
             return needle.ops.MulScalar(other)(self)
 
     def __pow__(self, other):
-        ### BEGIN YOUR SOLUTION
-        raise NotImplementedError()
-        ### END YOUR SOLUTION
+        if isinstance(other, Tensor):
+            return needle.ops.EWisePow()(self, other)
+        else:
+            return needle.ops.PowerScalar(other)(self)
 
     def __sub__(self, other):
         if isinstance(other, Tensor):
             return needle.ops.EWiseAdd()(self, needle.ops.Negate()(other))
         else:
             return needle.ops.AddScalar(-other)(self)
-       
-    def __rsub__(self, other):
-        if isinstance(other, Tensor):
-            return needle.ops.EWiseAdd()(needle.ops.Negate()(self), other)
-        else:
-            return needle.ops.AddScalar(other)(-self)
 
     def __truediv__(self, other):
         if isinstance(other, Tensor):
@@ -359,6 +361,7 @@ class Tensor(Value):
 
     __radd__ = __add__
     __rmul__ = __mul__
+    __rsub__ = __sub__
     __rmatmul__ = __matmul__
 
 
@@ -373,6 +376,7 @@ def compute_gradient_of_variables(output_tensor, out_grad):
     # We are really taking a derivative of the scalar reduce_sum(output_node)
     # instead of the vector output_node. But this is the common case for loss function.
     node_to_output_grads_list[output_tensor] = [out_grad]
+
     # Traverse graph in reverse topological order given the output_node that we are taking gradient wrt.
     reverse_topo_order = list(reversed(find_topo_sort([output_tensor])))
 

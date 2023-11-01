@@ -257,16 +257,16 @@ TEST_GETSETITEM_PARAMS = [((3, 2), (2, 1)), ((3, 3, 4), (2, np.s_[2:], np.s_[:3]
 def mugrade_submit(x):
     if isinstance(x, np.ndarray):
         x = x.flatten()[:64]
-        #print(x)
+        # print(x)
         mugrade.submit(x)
     else:
-        #print(x)
+        # print(x)
         mugrade.submit(x)
 
 
 def submit_new_nd_backend():
-    #devices = [ndl.cpu(), ndl.cuda()] if ndl.cuda().enabled() else [ndl.cpu()]
-    devices = [ndl.cpu(), ndl.cuda()]
+    devices = [ndl.cpu(), ndl.cuda()] if ndl.cuda().enabled() else [ndl.cpu()]
+    #devices = [ndl.cpu(), ndl.cuda()]
 
     if not ndl.cuda().enabled():
         print('You need a GPU to run some of these tests.')
