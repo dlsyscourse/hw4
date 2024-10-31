@@ -22,7 +22,7 @@ class ResNet9(ndl.nn.Module):
 
 class LanguageModel(nn.Module):
     def __init__(self, embedding_size, output_size, hidden_size, num_layers=1,
-                 seq_model='rnn', device=None, dtype="float32"):
+                 seq_model='rnn', seq_len=40, device=None, dtype="float32"):
         """
         Consists of an embedding layer, a sequence model (either RNN or LSTM), and a
         linear layer.
@@ -62,4 +62,4 @@ if __name__ == "__main__":
     model(x)
     cifar10_train_dataset = ndl.data.CIFAR10Dataset("data/cifar-10-batches-py", train=True)
     train_loader = ndl.data.DataLoader(cifar10_train_dataset, 128, ndl.cpu(), dtype="float32")
-    print(dataset[1][0].shape)
+    print(cifar10_train_dataset[1][0].shape)
