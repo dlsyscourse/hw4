@@ -31,6 +31,7 @@ class SGD(Optimizer):
     def clip_grad_norm(self, max_norm=0.25):
         """
         Clips gradient norm of parameters.
+        Note: This does not need to be implemented for HW2 and can be skipped.
         """
         ### BEGIN YOUR SOLUTION
         raise NotImplementedError()

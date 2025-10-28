@@ -1,7 +1,7 @@
 """Core data structures."""
 import needle
-from .backend_numpy import Device, cpu, all_devices
-from typing import List, Optional, NamedTuple, Tuple, Union
+from .backend_numpy import Device, all_devices
+from typing import List, Optional, NamedTuple, Tuple, Union, Dict
 from collections import namedtuple
 import numpy
 
@@ -17,7 +17,7 @@ TENSOR_COUNTER = 0
 import numpy as array_api
 NDArray = numpy.ndarray
 
-from .backend_selection import array_api, NDArray, default_device
+from .backend_selection import array_api, NDArray, default_device, cpu
 
 class Op:
     """Operator definition."""
@@ -305,7 +305,7 @@ class Tensor(Value):
     def numpy(self):
         data = self.realize_cached_data()
         if array_api is numpy:
-            return data
+            return numpy.array(data)
         return data.numpy()
 
     def __add__(self, other):

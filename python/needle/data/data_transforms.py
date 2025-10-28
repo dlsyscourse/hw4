@@ -15,7 +15,7 @@ class RandomFlipHorizontal(Transform):
         Args:
             img: H x W x C NDArray of an image
         Returns:
-            H x W x C ndarray corresponding to image flipped with probability self.p
+            H x W x C NDArray corresponding to image flipped with probability self.p
         Note: use the provided code to provide randomness, for easier testing
         """
         flip_img = np.random.rand() < self.p
@@ -33,7 +33,7 @@ class RandomCrop(Transform):
         Args:
              img: H x W x C NDArray of an image
         Return 
-            H x W x C NAArray of cliped image
+            H x W x C NDArray of cliped image
         Note: generate the image shifted by shift_x, shift_y specified below
         """
         shift_x, shift_y = np.random.randint(low=-self.padding, high=self.padding+1, size=2)

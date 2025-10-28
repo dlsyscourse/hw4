@@ -235,12 +235,12 @@ def test_language_model_training(device):
     model = LanguageModel(30, len(corpus.dictionary), hidden_size=hidden_size, num_layers=num_layers, seq_model=seq_model, device=device)
     train_acc, train_loss = train_ptb(model, train_data, seq_len=seq_len, n_epochs=n_epochs, device=device)
     test_acc, test_loss = evaluate_ptb(model, train_data, seq_len=seq_len, device=device)
-    if str(device) == "cpu(0)":
-        np.testing.assert_allclose(5.4136161980805575, train_loss, atol=1e-5, rtol=1e-5)
-        np.testing.assert_allclose(5.214852703942193, test_loss, atol=1e-5, rtol=1e-5)
-    elif str(device) == "cuda(0)":
-        np.testing.assert_allclose(5.424638041743526, train_loss, atol=1e-5, rtol=1e-5)
-        np.testing.assert_allclose(5.23579544491238, test_loss, atol=1e-5, rtol=1e-5)
+    if str(device) == "cpu()":
+        np.testing.assert_allclose(5.65995, train_loss, atol=1e-5, rtol=1e-5)
+        np.testing.assert_allclose(5.328375, test_loss, atol=1e-5, rtol=1e-5)
+    elif str(device) == "cuda()":
+        np.testing.assert_allclose(5.837475, train_loss, atol=1e-5, rtol=1e-5)
+        np.testing.assert_allclose(5.457653, test_loss, atol=1e-5, rtol=1e-5)
 
 
 ### MUGRADE ###
@@ -325,6 +325,11 @@ def submit_lstm():
         output.sum().backward()
         mugrade_submit(model.lstm_cells[-1].W_hh.grad.numpy())
 
+def _as_np1d(x):
+    a = np.asarray(x)
+    if a.ndim == 0:               # scalar -> (1,)
+        a = a.reshape(1,)
+    return a
 
 def submit_language_model():
     devices = [ndl.cpu(), ndl.cuda()] if ndl.cuda().enabled() else [ndl.cpu()]
@@ -365,8 +370,8 @@ def submit_language_model():
         seq_model=seq_model, device=device)
     train_acc, train_loss = train_ptb(model, train_data, seq_len=seq_len, n_epochs=n_epochs, device=device)
     test_acc, test_loss = evaluate_ptb(model, train_data, seq_len=seq_len, device=device)
-    mugrade_submit(train_loss)
-    mugrade_submit(test_loss)
+    mugrade_submit(_as_np1d(train_loss))
+    mugrade_submit(_as_np1d(test_loss))
 
 
 if __name__ == "__main__":

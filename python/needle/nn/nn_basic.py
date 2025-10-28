@@ -1,6 +1,6 @@
 """The module.
 """
-from typing import List, Callable, Any
+from typing import Any
 from needle.autograd import Tensor
 from needle import ops
 import needle.init as init
@@ -11,7 +11,7 @@ class Parameter(Tensor):
     """A special kind of tensor that represents parameters."""
 
 
-def _unpack_params(value: object) -> List[Tensor]:
+def _unpack_params(value: object) -> list[Tensor]:
     if isinstance(value, Parameter):
         return [value]
     elif isinstance(value, Module):
@@ -30,7 +30,7 @@ def _unpack_params(value: object) -> List[Tensor]:
         return []
 
 
-def _child_modules(value: object) -> List["Module"]:
+def _child_modules(value: object) -> list["Module"]:
     if isinstance(value, Module):
         modules = [value]
         modules.extend(_child_modules(value.__dict__))
@@ -50,22 +50,22 @@ def _child_modules(value: object) -> List["Module"]:
 
 
 class Module:
-    def __init__(self):
+    def __init__(self) -> None:
         self.training = True
 
-    def parameters(self) -> List[Tensor]:
+    def parameters(self) -> list[Tensor]:
         """Return the list of parameters in the module."""
         return _unpack_params(self.__dict__)
 
-    def _children(self) -> List["Module"]:
+    def _children(self) -> list["Module"]:
         return _child_modules(self.__dict__)
 
-    def eval(self):
+    def eval(self) -> None:
         self.training = False
         for m in self._children():
             m.training = False
 
-    def train(self):
+    def train(self) -> None:
         self.training = True
         for m in self._children():
             m.training = True
@@ -75,14 +75,12 @@ class Module:
 
 
 class Identity(Module):
-    def forward(self, x):
+    def forward(self, x: Tensor) -> Tensor:
         return x
 
 
 class Linear(Module):
-    def __init__(
-        self, in_features, out_features, bias=True, device=None, dtype="float32"
-    ):
+    def __init__(self, in_features: int, out_features: int, bias: bool = True, device: Any | None = None, dtype: str = "float32") -> None:
         super().__init__()
         self.in_features = in_features
         self.out_features = out_features
@@ -98,7 +96,7 @@ class Linear(Module):
 
 
 class Flatten(Module):
-    def forward(self, X):
+    def forward(self, X: Tensor) -> Tensor:
         ### BEGIN YOUR SOLUTION
         raise NotImplementedError()
         ### END YOUR SOLUTION
@@ -111,7 +109,7 @@ class ReLU(Module):
         ### END YOUR SOLUTION
 
 class Sequential(Module):
-    def __init__(self, *modules):
+    def __init__(self, *modules: Module) -> None:
         super().__init__()
         self.modules = modules
 
@@ -122,14 +120,14 @@ class Sequential(Module):
 
 
 class SoftmaxLoss(Module):
-    def forward(self, logits: Tensor, y: Tensor):
+    def forward(self, logits: Tensor, y: Tensor) -> Tensor:
         ### BEGIN YOUR SOLUTION
         raise NotImplementedError()
         ### END YOUR SOLUTION
 
 
 class BatchNorm1d(Module):
-    def __init__(self, dim, eps=1e-5, momentum=0.1, device=None, dtype="float32"):
+    def __init__(self, dim: int, eps: float = 1e-5, momentum: float = 0.1, device: Any | None = None, dtype: str = "float32") -> None:
         super().__init__()
         self.dim = dim
         self.eps = eps
@@ -156,7 +154,7 @@ class BatchNorm2d(BatchNorm1d):
 
 
 class LayerNorm1d(Module):
-    def __init__(self, dim, eps=1e-5, device=None, dtype="float32"):
+    def __init__(self, dim: int, eps: float = 1e-5, device: Any | None = None, dtype: str = "float32") -> None:
         super().__init__()
         self.dim = dim
         self.eps = eps
@@ -171,7 +169,7 @@ class LayerNorm1d(Module):
 
 
 class Dropout(Module):
-    def __init__(self, p=0.5):
+    def __init__(self, p: float = 0.5) -> None:
         super().__init__()
         self.p = p
 
@@ -182,7 +180,7 @@ class Dropout(Module):
 
 
 class Residual(Module):
-    def __init__(self, fn: Module):
+    def __init__(self, fn: Module) -> None:
         super().__init__()
         self.fn = fn
 
