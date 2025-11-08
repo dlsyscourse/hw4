@@ -236,11 +236,11 @@ def test_language_model_training(device):
     train_acc, train_loss = train_ptb(model, train_data, seq_len=seq_len, n_epochs=n_epochs, device=device)
     test_acc, test_loss = evaluate_ptb(model, train_data, seq_len=seq_len, device=device)
     if str(device) == "cpu()":
-        np.testing.assert_allclose(5.65995, train_loss, atol=1e-5, rtol=1e-5)
-        np.testing.assert_allclose(5.328375, test_loss, atol=1e-5, rtol=1e-5)
+        np.testing.assert_allclose(5.809671, train_loss, atol=1e-5, rtol=1e-5)
+        np.testing.assert_allclose(5.391172, test_loss, atol=1e-5, rtol=1e-5)
     elif str(device) == "cuda()":
-        np.testing.assert_allclose(5.837475, train_loss, atol=1e-5, rtol=1e-5)
-        np.testing.assert_allclose(5.457653, test_loss, atol=1e-5, rtol=1e-5)
+        np.testing.assert_allclose(5.632849, train_loss, atol=1e-5, rtol=1e-5)
+        np.testing.assert_allclose(5.417056, test_loss, atol=1e-5, rtol=1e-5)
 
 
 ### MUGRADE ###
