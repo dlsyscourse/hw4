@@ -6,10 +6,6 @@ from typing import Optional, List, Tuple, Union
 from ..autograd import NDArray
 from ..autograd import Op, Tensor, Value, TensorOp
 from ..autograd import TensorTuple, TensorTupleOp
-import numpy
-
-# NOTE: we will import numpy as the array_api
-# as the backend for our computations, this line will change in later homeworks
 
 from ..backend_selection import array_api, BACKEND
 from .ops_tuple import *

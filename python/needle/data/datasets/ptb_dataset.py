@@ -2,7 +2,7 @@ import os
 
 import numpy as np
 from needle import backend_ndarray as nd
-from needle import Tensor
+from needle.autograd import Tensor
 
 class Dictionary(object):
     """
